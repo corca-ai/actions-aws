@@ -1,0 +1,33 @@
+{
+  "requiresCompatibilities": ["FARGATE"],
+  "family": "actions-ecs",
+  "cpu": "4096",
+  "memory": "16384",
+  "runtimePlatform": {
+    "operatingSystemFamily": "LINUX"
+  },
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::{{ AWS_CLIENT_ID }}:role/ecsTaskExecutionRole",
+  "volumes": [],
+  "containerDefinitions": [
+    {
+      "name": "runner",
+      "image": "ubuntu",
+      "cpu": 0,
+      "portMappings": [],
+      "essential": true,
+      "environment": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/actions-ecs",
+          "awslogs-region": "{{ AWS_REGION }}",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "tags": []
+}

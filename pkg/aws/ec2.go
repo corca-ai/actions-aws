@@ -1,0 +1,88 @@
+package aws
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+)
+
+var USER_DATA = "./resource/user-data.sh"
+
+type EC2 struct {
+	client   *ec2.Client
+	ClientId string
+	Region   string
+}
+
+type EC2Options struct {
+	ClientId        string
+	Region          string
+	AccessKeyId     string
+	SecretAccessKey string
+}
+
+func NewEC2(o EC2Options) *EC2 {
+	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(o.Region), config.WithCredentialsProvider(
+		credentials.NewStaticCredentialsProvider(o.AccessKeyId, o.SecretAccessKey, ""),
+	))
+	if err != nil {
+		panic(err)
+	}
+	return &EC2{
+		client:   ec2.NewFromConfig(cfg),
+		ClientId: o.ClientId,
+		Region:   o.Region,
+	}
+}
+
+func (e *EC2) GetUserData() (*string, error) {
+	f, err := os.Open(USER_DATA)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	s := string(b)
+	s = strings.ReplaceAll(s, "{{ ACTIONS_RUNNER_VERSION }}", "2.303.0")
+	s = strings.ReplaceAll(s, "{{ GITHUB_URL }}", "")
+	s = strings.ReplaceAll(s, "{{ GITHUB_TOKEN }}", "")
+	return &s, nil
+}
+
+func (e *EC2) InitializeInstance() error {
+	userdata, err := e.GetUserData()
+	if err != nil {
+		return fmt.Errorf("could not get task definition: %s", err)
+	}
+
+	ri, err := e.client.RunInstances(context.Background(), &ec2.RunInstancesInput{
+		ImageId:      aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+		InstanceType: types.InstanceTypeC6iXlarge,
+		MaxCount:     aws.Int32(1),
+		MinCount:     aws.Int32(1),
+		UserData:     userdata,
+		KeyName:      aws.String("github-actions-runner"),
+	})
+	if err != nil {
+		return fmt.Errorf("could not create instance: %s", err)
+	}
+
+	for i := range ri.Instances {
+		log.Printf("Created instance: %s", *ri.Instances[i].InstanceId)
+	}
+
+	return nil
+}
