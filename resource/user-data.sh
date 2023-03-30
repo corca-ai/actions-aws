@@ -19,3 +19,5 @@ su - runner
 
 ./config.sh --ephemeral --url "$GITHUB_URL" --token "$GITHUB_TOKEN"
 ./run.sh
+
+echo "sudo halt" | at now + 3 minutes

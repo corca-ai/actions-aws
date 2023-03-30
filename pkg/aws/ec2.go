@@ -18,13 +18,11 @@ import (
 var USER_DATA = "./resource/user-data.sh"
 
 type EC2 struct {
-	client   *ec2.Client
-	ClientId string
-	Region   string
+	client *ec2.Client
+	Region string
 }
 
 type EC2Options struct {
-	ClientId        string
 	Region          string
 	AccessKeyId     string
 	SecretAccessKey string
@@ -38,13 +36,12 @@ func NewEC2(o EC2Options) *EC2 {
 		panic(err)
 	}
 	return &EC2{
-		client:   ec2.NewFromConfig(cfg),
-		ClientId: o.ClientId,
-		Region:   o.Region,
+		client: ec2.NewFromConfig(cfg),
+		Region: o.Region,
 	}
 }
 
-func (e *EC2) GetUserData() (*string, error) {
+func (e *EC2) GetUserData(url string, token string) (*string, error) {
 	f, err := os.Open(USER_DATA)
 	if err != nil {
 		return nil, err
@@ -57,24 +54,20 @@ func (e *EC2) GetUserData() (*string, error) {
 	}
 	s := string(b)
 	s = strings.ReplaceAll(s, "{{ ACTIONS_RUNNER_VERSION }}", "2.303.0")
-	s = strings.ReplaceAll(s, "{{ GITHUB_URL }}", "")
-	s = strings.ReplaceAll(s, "{{ GITHUB_TOKEN }}", "")
+	s = strings.ReplaceAll(s, "{{ GITHUB_URL }}", url)
+	s = strings.ReplaceAll(s, "{{ GITHUB_TOKEN }}", token)
 	return &s, nil
 }
 
-func (e *EC2) InitializeInstance() error {
-	userdata, err := e.GetUserData()
-	if err != nil {
-		return fmt.Errorf("could not get task definition: %s", err)
-	}
-
+func (e *EC2) DeployEC2Runner(userdata *string) error {
 	ri, err := e.client.RunInstances(context.Background(), &ec2.RunInstancesInput{
-		ImageId:      aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
-		InstanceType: types.InstanceTypeC6iXlarge,
-		MaxCount:     aws.Int32(1),
-		MinCount:     aws.Int32(1),
-		UserData:     userdata,
-		KeyName:      aws.String("github-actions-runner"),
+		ImageId:                           aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+		InstanceType:                      types.InstanceTypeC6iXlarge,
+		MaxCount:                          aws.Int32(1),
+		MinCount:                          aws.Int32(1),
+		UserData:                          userdata,
+		KeyName:                           aws.String("github-actions-runner"),
+		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
 	})
 	if err != nil {
 		return fmt.Errorf("could not create instance: %s", err)
