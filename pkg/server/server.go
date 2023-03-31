@@ -5,15 +5,18 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/corca-ai/actions-ecs/pkg/aws"
 	"github.com/google/go-github/v50/github"
 )
 
 type ActionsEC2Server struct {
-	ecs   *aws.ECS
-	ec2   *aws.EC2
-	token string
+	ecs               *aws.ECS
+	ec2               *aws.EC2
+	token             string
+	lastDeployAt      time.Time
+	maxRunnerIdleTime time.Duration
 }
 
 type ActionsEC2ServerOptions struct {
@@ -24,14 +27,26 @@ type ActionsEC2ServerOptions struct {
 
 func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
 	return &ActionsEC2Server{
-		ecs:   aws.NewECS(o.ECS),
-		ec2:   aws.NewEC2(o.EC2),
-		token: o.Token,
+		ecs:               aws.NewECS(o.ECS),
+		ec2:               aws.NewEC2(o.EC2),
+		token:             o.Token,
+		lastDeployAt:      time.Now(),
+		maxRunnerIdleTime: 30 * time.Minute,
 	}
 }
 
 func (s *ActionsEC2Server) Initialize() error {
 	log.Println("Initializing server...")
+
+	go func() {
+		for {
+			err := s.Purge()
+			if err != nil {
+				log.Printf("[ERR] Error while purging: %s\n", err)
+			}
+			time.Sleep(1 * time.Minute)
+		}
+	}()
 
 	return nil
 }
@@ -64,6 +79,14 @@ func (s *ActionsEC2Server) Handle(payload github.WorkflowJobEvent) error {
 		return s.DeployRunner(DeployRunnerOptions{
 			URL: payload.Repo.GetHTMLURL(),
 		})
+	}
+	return nil
+}
+
+func (s *ActionsEC2Server) Purge() error {
+	if s.lastDeployAt.Add(s.maxRunnerIdleTime).Before(time.Now()) {
+		log.Printf("[INFO] Runner has been idle for %s, stopping it\n", s.maxRunnerIdleTime)
+		return s.StopRunner()
 	}
 	return nil
 }

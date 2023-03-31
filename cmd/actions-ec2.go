@@ -21,6 +21,7 @@ func main() {
 			Region:          os.Getenv("AWS_REGION"),
 			AccessKeyId:     os.Getenv("AWS_ACCESS_KEY_ID"),
 			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			InstanceId:      os.Getenv("AWS_EC2_INSTANCE_ID"),
 		},
 		Token: os.Getenv("GITHUB_TOKEN"),
 	})
