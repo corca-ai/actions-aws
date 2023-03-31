@@ -3,7 +3,6 @@ export ACTIONS_RUNNER_VERSION={{ ACTIONS_RUNNER_VERSION }}
 export GITHUB_URL={{ GITHUB_URL }}
 export GITHUB_TOKEN={{ GITHUB_TOKEN }}
 export PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
-export BOOT_SCRIPT=/var/lib/cloud/scripts/per-boot/actions-runner.sh
 
 apt-get update && apt-get install -y curl unzip ca-certificates gnupg
 
