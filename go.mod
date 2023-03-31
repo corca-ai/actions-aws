@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.18
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.91.0
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.24.2
+	github.com/aws/aws-sdk-go-v2/service/efs v1.19.9
 	github.com/google/go-github/v50 v50.2.0
 	github.com/joho/godotenv v1.5.1
 )

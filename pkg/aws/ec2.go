@@ -63,13 +63,12 @@ func (e *EC2) GetUserData(url string, token string) (string, error) {
 
 func (e *EC2) CreateInstance(userdata string) (*string, error) {
 	ri, err := e.client.RunInstances(context.Background(), &ec2.RunInstancesInput{
-		ImageId:                           aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
-		InstanceType:                      types.InstanceTypeC6iXlarge,
-		MaxCount:                          aws.Int32(1),
-		MinCount:                          aws.Int32(1),
-		UserData:                          aws.String(base64.StdEncoding.EncodeToString([]byte(userdata))),
-		KeyName:                           aws.String("github-actions-runner"),
-		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
+		ImageId:      aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+		InstanceType: types.InstanceTypeC6iXlarge,
+		MaxCount:     aws.Int32(1),
+		MinCount:     aws.Int32(1),
+		UserData:     aws.String(base64.StdEncoding.EncodeToString([]byte(userdata))),
+		KeyName:      aws.String("github-actions-runner"),
 	})
 
 	if err != nil {

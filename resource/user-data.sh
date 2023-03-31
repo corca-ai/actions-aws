@@ -41,9 +41,5 @@ cd /home/ubuntu
 nohup ./run.sh > action.log &
 EOF
 
-cat <<- EOF > $BOOT_SCRIPT
-#!/bin/bash
-sudo su - ubuntu -c "cd /home/ubuntu && nohup ./run.sh > action.log &"
-EOF
-
-chmod +x $BOOT_SCRIPT
+./svc.sh install ubuntu 
+./svc.sh start
