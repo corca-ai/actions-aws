@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -18,15 +19,13 @@ import (
 var USER_DATA = "./resource/user-data.sh"
 
 type EC2 struct {
-	client     *ec2.Client
-	instanceId string
+	client *ec2.Client
 }
 
 type EC2Options struct {
 	Region          string
 	AccessKeyId     string
 	SecretAccessKey string
-	InstanceId      string
 }
 
 func NewEC2(o EC2Options) *EC2 {
@@ -40,54 +39,53 @@ func NewEC2(o EC2Options) *EC2 {
 		panic(err)
 	}
 	return &EC2{
-		client:     ec2.NewFromConfig(cfg),
-		instanceId: o.InstanceId,
+		client: ec2.NewFromConfig(cfg),
 	}
 }
 
-func (e *EC2) GetUserData(url string, token string) (*string, error) {
+func (e *EC2) GetUserData(url string, token string) (string, error) {
 	f, err := os.Open(USER_DATA)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer f.Close()
 
 	b, err := io.ReadAll(f)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	s := string(b)
 	s = strings.ReplaceAll(s, "{{ ACTIONS_RUNNER_VERSION }}", "2.303.0")
 	s = strings.ReplaceAll(s, "{{ GITHUB_URL }}", url)
 	s = strings.ReplaceAll(s, "{{ GITHUB_TOKEN }}", token)
-	return &s, nil
+	return s, nil
 }
 
-func (e *EC2) CreateInstance(userdata *string) error {
+func (e *EC2) CreateInstance(userdata string) (*string, error) {
 	ri, err := e.client.RunInstances(context.Background(), &ec2.RunInstancesInput{
 		ImageId:                           aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
 		InstanceType:                      types.InstanceTypeC6iXlarge,
 		MaxCount:                          aws.Int32(1),
 		MinCount:                          aws.Int32(1),
-		UserData:                          userdata,
+		UserData:                          aws.String(base64.StdEncoding.EncodeToString([]byte(userdata))),
 		KeyName:                           aws.String("github-actions-runner"),
 		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
 	})
 
 	if err != nil {
-		return fmt.Errorf("could not create instance: %s", err)
+		return nil, fmt.Errorf("could not create instance: %s", err)
 	}
 
-	for i := range ri.Instances {
-		log.Printf("Created instance: %s", *ri.Instances[i].InstanceId)
-	}
+	instance := ri.Instances[0]
 
-	return nil
+	log.Printf("Created instance: %s", *instance.InstanceId)
+
+	return instance.InstanceId, nil
 }
 
-func (e *EC2) StartInstance() error {
+func (e *EC2) StartInstance(id string) error {
 	si, err := e.client.StartInstances(context.Background(), &ec2.StartInstancesInput{
-		InstanceIds: []string{e.instanceId},
+		InstanceIds: []string{id},
 	})
 	if err != nil {
 		return fmt.Errorf("could not start instance: %s", err)
@@ -100,9 +98,9 @@ func (e *EC2) StartInstance() error {
 	return nil
 }
 
-func (e *EC2) StopInstance() error {
+func (e *EC2) StopInstance(id string) error {
 	si, err := e.client.StopInstances(context.Background(), &ec2.StopInstancesInput{
-		InstanceIds: []string{e.instanceId},
+		InstanceIds: []string{id},
 	})
 	if err != nil {
 		return fmt.Errorf("could not stop instance: %s", err)

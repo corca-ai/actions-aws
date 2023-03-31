@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,15 +15,19 @@ import (
 type ActionsEC2Server struct {
 	ecs               *aws.ECS
 	ec2               *aws.EC2
+	url               string
 	token             string
+	instanceId        string
 	lastDeployAt      time.Time
 	maxRunnerIdleTime time.Duration
 }
 
 type ActionsEC2ServerOptions struct {
-	ECS   aws.ECSOptions
-	EC2   aws.EC2Options
-	Token string
+	ECS        aws.ECSOptions
+	EC2        aws.EC2Options
+	URL        string
+	Token      string
+	InstanceId string
 }
 
 func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
@@ -30,6 +35,8 @@ func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
 		ecs:               aws.NewECS(o.ECS),
 		ec2:               aws.NewEC2(o.EC2),
 		token:             o.Token,
+		url:               o.URL,
+		instanceId:        o.InstanceId,
 		lastDeployAt:      time.Now(),
 		maxRunnerIdleTime: 30 * time.Minute,
 	}
@@ -37,6 +44,13 @@ func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
 
 func (s *ActionsEC2Server) Initialize() error {
 	log.Println("Initializing server...")
+
+	if s.instanceId == "" {
+		log.Println("No instance id specified, creating one...")
+		if err := s.CreateRunner(DeployRunnerOptions{URL: s.url}); err != nil {
+			return fmt.Errorf("could not create runner: %s", err)
+		}
+	}
 
 	go func() {
 		for {

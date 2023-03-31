@@ -6,8 +6,7 @@ import (
 )
 
 type DeployRunnerOptions struct {
-	WorkflowID int64
-	URL        string
+	URL string
 }
 
 func (s *ActionsEC2Server) DeployRunner(o DeployRunnerOptions) error {
@@ -28,15 +27,22 @@ func (s *ActionsEC2Server) CreateRunner(o DeployRunnerOptions) error {
 		return fmt.Errorf("could not get task definition: %s", err)
 	}
 
-	err = s.ec2.CreateInstance(userdata)
+	instanceId, err := s.ec2.CreateInstance(userdata)
 	if err != nil {
 		return fmt.Errorf("failed to deploy ec2 runner: %s", err)
 	}
+
+	if instanceId == nil {
+		return fmt.Errorf("failed to deploy ec2 runner: instance id is nil")
+	}
+
+	s.instanceId = *instanceId
+
 	return nil
 }
 
 func (s *ActionsEC2Server) StartRunner(o DeployRunnerOptions) error {
-	err := s.ec2.StartInstance()
+	err := s.ec2.StartInstance(s.instanceId)
 	if err != nil {
 		return fmt.Errorf("failed to start ec2 runner: %s", err)
 	}
@@ -45,7 +51,7 @@ func (s *ActionsEC2Server) StartRunner(o DeployRunnerOptions) error {
 }
 
 func (s *ActionsEC2Server) StopRunner() error {
-	err := s.ec2.StopInstance()
+	err := s.ec2.StopInstance(s.instanceId)
 	if err != nil {
 		return fmt.Errorf("failed to stop ec2 runner: %s", err)
 	}
