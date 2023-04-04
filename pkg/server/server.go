@@ -23,11 +23,12 @@ type ActionsEC2Server struct {
 }
 
 type ActionsEC2ServerOptions struct {
-	ECS        aws.ECSOptions
-	EC2        aws.EC2Options
-	URL        string
-	Token      string
-	InstanceId string
+	ECS               aws.ECSOptions
+	EC2               aws.EC2Options
+	URL               string
+	Token             string
+	InstanceId        string
+	MaxRunnerIdleTime time.Duration
 }
 
 func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
@@ -38,7 +39,7 @@ func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
 		url:               o.URL,
 		instanceId:        o.InstanceId,
 		lastDeployAt:      time.Now(),
-		maxRunnerIdleTime: 30 * time.Minute,
+		maxRunnerIdleTime: o.MaxRunnerIdleTime,
 	}
 }
 
