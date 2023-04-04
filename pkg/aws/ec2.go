@@ -83,30 +83,22 @@ func (e *EC2) CreateInstance(userdata string) (*string, error) {
 }
 
 func (e *EC2) StartInstance(id string) error {
-	si, err := e.client.StartInstances(context.Background(), &ec2.StartInstancesInput{
+	_, err := e.client.StartInstances(context.Background(), &ec2.StartInstancesInput{
 		InstanceIds: []string{id},
 	})
 	if err != nil {
 		return fmt.Errorf("could not start instance: %s", err)
 	}
 
-	for i := range si.StartingInstances {
-		log.Printf("Started instance: %s", *si.StartingInstances[i].InstanceId)
-	}
-
 	return nil
 }
 
 func (e *EC2) StopInstance(id string) error {
-	si, err := e.client.StopInstances(context.Background(), &ec2.StopInstancesInput{
+	_, err := e.client.StopInstances(context.Background(), &ec2.StopInstancesInput{
 		InstanceIds: []string{id},
 	})
 	if err != nil {
 		return fmt.Errorf("could not stop instance: %s", err)
-	}
-
-	for i := range si.StoppingInstances {
-		log.Printf("Stopped instance: %s", *si.StoppingInstances[i].InstanceId)
 	}
 
 	return nil

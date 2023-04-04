@@ -45,6 +45,7 @@ func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
 
 func (s *ActionsEC2Server) Initialize() error {
 	log.Println("Initializing server...")
+	log.Printf("- Max Runner Idle Time: %s\n", s.maxRunnerIdleTime)
 
 	if s.instanceId == "" {
 		log.Println("No instance id specified, creating one...")
@@ -68,7 +69,6 @@ func (s *ActionsEC2Server) Initialize() error {
 
 func (s *ActionsEC2Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	log.Printf("[INFO] Received request: %s %s\n", r.Method, r.URL.Path)
 
 	var payload github.WorkflowJobEvent
 	if body, err := io.ReadAll(r.Body); err != nil {
