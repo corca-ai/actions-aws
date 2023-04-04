@@ -142,6 +142,13 @@ func (s *ActionsEC2Server) Handle(payload github.WorkflowJobEvent) error {
 }
 
 func (s *ActionsEC2Server) Purge() error {
+	running, err := s.RunnerIsRunning()
+	if err != nil {
+		return fmt.Errorf("could not check if runner is running: %s", err)
+	}
+	if !running {
+		return nil
+	}
 	if s.lastDeployAt.Add(s.maxRunnerIdleTime).Before(time.Now()) {
 		log.Printf("[INFO] Runner has been idle for %s, stopping it\n", s.maxRunnerIdleTime)
 		return s.StopRunner()

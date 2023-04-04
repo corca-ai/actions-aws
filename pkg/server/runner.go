@@ -58,3 +58,12 @@ func (s *ActionsEC2Server) StopRunner() error {
 
 	return nil
 }
+
+func (s *ActionsEC2Server) RunnerIsRunning() (bool, error) {
+	state, err := s.ec2.DescribeInstance(s.instanceId)
+	if err != nil {
+		return false, fmt.Errorf("failed to describe instance: %s", err)
+	}
+
+	return state == "running", nil
+}
