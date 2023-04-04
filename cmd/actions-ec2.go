@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/corca-ai/actions-ecs/pkg/aws"
@@ -30,12 +31,18 @@ func main() {
 		panic(fmt.Errorf("failed to parse MAX_RUNNER_IDLE_TIME: %v", err))
 	}
 
+	port, err := strconv.ParseInt(Getenv("PORT", "8000"), 10, 32)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse PORT: %v", err))
+	}
+
 	s := server.NewActionsEC2Server(server.ActionsEC2ServerOptions{
 		EC2: aws.EC2Options{
 			Region:          Getenv("AWS_REGION", "ap-northeast-2"),
 			AccessKeyId:     Getenv("AWS_ACCESS_KEY_ID", ""),
 			SecretAccessKey: Getenv("AWS_SECRET_ACCESS_KEY", ""),
 		},
+		Secret:            Getenv("GITHUB_SECRET", ""),
 		InstanceId:        Getenv("AWS_EC2_INSTANCE_ID", ""),
 		URL:               Getenv("GITHUB_URL", ""),
 		Token:             Getenv("GITHUB_TOKEN", ""),
@@ -46,8 +53,8 @@ func main() {
 		panic(fmt.Errorf("failed to initialize server: %v", err))
 	}
 
-	log.Println("Listening on :8000")
-	if err := http.ListenAndServe(":8000", s); err != nil {
+	log.Printf("Listening on :%d\n", port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), s); err != nil {
 		log.Fatal(err)
 	}
 }
