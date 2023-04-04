@@ -21,6 +21,8 @@ func Getenv(key string, fallback string) string {
 }
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.LUTC)
+
 	err := godotenv.Load()
 	if err == nil {
 		log.Println("Loaded .env file")
