@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
 type DeployRunnerOptions struct {
@@ -10,10 +12,12 @@ type DeployRunnerOptions struct {
 }
 
 func (s *ActionsEC2Server) DeployRunner(o DeployRunnerOptions) error {
-	err := s.StartRunner(o)
+	if err := s.WaitForRunnerStateChangable(s.runnerWaitTimeout); err != nil {
+		return err
+	}
 
-	if err != nil {
-		return fmt.Errorf("failed to deploy ec2 runner: %s", err)
+	if err := s.StartRunner(o); err != nil {
+		return err
 	}
 
 	s.lastDeployAt = time.Now()
@@ -65,5 +69,45 @@ func (s *ActionsEC2Server) RunnerIsRunning() (bool, error) {
 		return false, fmt.Errorf("failed to describe instance: %s", err)
 	}
 
-	return state == "running", nil
+	return state == types.InstanceStateNameRunning, nil
+}
+
+func (s *ActionsEC2Server) RunnerIsStopping() (bool, error) {
+	state, err := s.ec2.DescribeInstance(s.instanceId)
+	if err != nil {
+		return false, fmt.Errorf("failed to describe instance: %s", err)
+	}
+
+	return state == types.InstanceStateNameStopping, nil
+}
+
+func (s *ActionsEC2Server) WaitForRunnerStateChangable(timeout time.Duration) error {
+	result := make(chan error, 1)
+	go func() {
+		for {
+			stopping, err := s.RunnerIsStopping()
+			if err != nil {
+				result <- err
+			}
+			if !stopping {
+				result <- nil
+			}
+		}
+	}()
+
+	if timeout > 0 {
+		timer := time.NewTimer(timeout)
+		select {
+		case err := <-result:
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return err
+		case <-timer.C:
+			return fmt.Errorf("timeout exceeded while waiting for instance to be changable (duration: %v)", timeout)
+		}
+	} else {
+		err := <-result
+		return err
+	}
 }
