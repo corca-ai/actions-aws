@@ -1,6 +1,6 @@
 # Self-hosted Runner Manager
 
-## Manage your self-hosted runner
+### Manage your self-hosted runner
 
 <br>
 
@@ -17,7 +17,7 @@ Currently, Runner Manager is valid for runners running on AWS EC2 instances.
 
 <br>
 
-## How to execute Runner Manager
+### How to execute Runner Manager
 
 .env
 
