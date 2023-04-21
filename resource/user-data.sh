@@ -3,6 +3,7 @@ export ACTIONS_RUNNER_VERSION={{ ACTIONS_RUNNER_VERSION }}
 export GITHUB_URL={{ GITHUB_URL }}
 export GITHUB_TOKEN={{ GITHUB_TOKEN }}
 export PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
+export LABELS={{ LABELS }}
 
 apt-get update && apt-get install -y curl unzip ca-certificates gnupg
 
@@ -36,7 +37,7 @@ chown -R ubuntu:ubuntu /home/ubuntu
 sudo -u ubuntu -i <<- EOF
 newgrp docker
 cd /home/ubuntu
-./config.sh --url "$GITHUB_URL" --pat "$GITHUB_TOKEN" --name $PUBLIC_IP --runnergroup default --work _work --labels self-hosted,Linux,X64 > config.log
+./config.sh --url "$GITHUB_URL" --pat "$GITHUB_TOKEN" --name $PUBLIC_IP --runnergroup default --work _work --labels $LABELS > config.log
 nohup ./run.sh > action.log &
 EOF
 

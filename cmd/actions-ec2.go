@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/corca-ai/actions-ecs/pkg/aws"
@@ -53,6 +54,7 @@ func main() {
 		InstanceId:        Getenv("AWS_EC2_INSTANCE_ID", ""),
 		URL:               Getenv("GITHUB_URL", ""),
 		Token:             Getenv("GITHUB_TOKEN", ""),
+		Labels:            append([]string{"self-hosted", "Linux", "X64"}, strings.Split(Getenv("LABELS", ""), ",")...),
 		MaxRunnerIdleTime: maxRunnerIdleTime,
 		RunnerWaitTimeout: runnerWaitTimeout,
 	})

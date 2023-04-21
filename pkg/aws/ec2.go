@@ -43,7 +43,7 @@ func NewEC2(o EC2Options) *EC2 {
 	}
 }
 
-func (e *EC2) GetUserData(url string, token string) (string, error) {
+func (e *EC2) GetUserData(url string, token string, labels []string) (string, error) {
 	f, err := os.Open(USER_DATA)
 	if err != nil {
 		return "", err
@@ -58,6 +58,7 @@ func (e *EC2) GetUserData(url string, token string) (string, error) {
 	s = strings.ReplaceAll(s, "{{ ACTIONS_RUNNER_VERSION }}", "2.303.0")
 	s = strings.ReplaceAll(s, "{{ GITHUB_URL }}", url)
 	s = strings.ReplaceAll(s, "{{ GITHUB_TOKEN }}", token)
+	s = strings.ReplaceAll(s, "{{ LABELS }}", strings.Join(labels, ","))
 	return s, nil
 }
 

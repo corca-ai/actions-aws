@@ -26,7 +26,7 @@ func (s *ActionsEC2Server) DeployRunner(o DeployRunnerOptions) error {
 }
 
 func (s *ActionsEC2Server) CreateRunner(o DeployRunnerOptions) error {
-	userdata, err := s.ec2.GetUserData(o.URL, s.token)
+	userdata, err := s.ec2.GetUserData(o.URL, s.token, s.labels)
 	if err != nil {
 		return fmt.Errorf("could not get task definition: %s", err)
 	}
