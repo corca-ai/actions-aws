@@ -82,8 +82,36 @@ func (e *EC2) CreateInstance(userdata string) (*string, error) {
 	return instance.InstanceId, nil
 }
 
+func (e *EC2) DescribeInstance(id string) (types.InstanceStateName, error) {
+	status, err := e.client.DescribeInstanceStatus(context.Background(), &ec2.DescribeInstanceStatusInput{
+		InstanceIds: []string{id},
+	})
+	if err != nil {
+		return "", fmt.Errorf("could not describe instance: %s", err)
+	}
+
+	if len(status.InstanceStatuses) == 0 {
+		return "", fmt.Errorf("could not find instance: %s", id)
+	}
+
+	return status.InstanceStatuses[0].InstanceState.Name, nil
+}
+
 func (e *EC2) StartInstance(id string) error {
-	_, err := e.client.StartInstances(context.Background(), &ec2.StartInstancesInput{
+	s, err := e.DescribeInstance(id)
+	if err != nil {
+		return err
+	}
+
+	if s == types.InstanceStateNameRunning {
+		return nil
+	}
+
+	if s == types.InstanceStateNameStopping {
+		return fmt.Errorf("instance is stopping")
+	}
+
+	_, err = e.client.StartInstances(context.Background(), &ec2.StartInstancesInput{
 		InstanceIds: []string{id},
 	})
 	if err != nil {
@@ -94,7 +122,20 @@ func (e *EC2) StartInstance(id string) error {
 }
 
 func (e *EC2) StopInstance(id string) error {
-	_, err := e.client.StopInstances(context.Background(), &ec2.StopInstancesInput{
+	s, err := e.DescribeInstance(id)
+	if err != nil {
+		return err
+	}
+
+	if s == types.InstanceStateNameStopped {
+		return nil
+	}
+
+	if s == types.InstanceStateNameStopping {
+		return nil
+	}
+
+	_, err = e.client.StopInstances(context.Background(), &ec2.StopInstancesInput{
 		InstanceIds: []string{id},
 	})
 	if err != nil {

@@ -33,6 +33,11 @@ func main() {
 		panic(fmt.Errorf("failed to parse MAX_RUNNER_IDLE_TIME: %v", err))
 	}
 
+	runnerWaitTimeout, err := time.ParseDuration(Getenv("RUNNER_WAIT_TIMEOUT", "3m"))
+	if err != nil {
+		panic(fmt.Errorf("failed to parse RUNNER_WAIT_TIMEOUT: %v", err))
+	}
+
 	port, err := strconv.ParseInt(Getenv("PORT", "8000"), 10, 32)
 	if err != nil {
 		panic(fmt.Errorf("failed to parse PORT: %v", err))
@@ -49,6 +54,7 @@ func main() {
 		URL:               Getenv("GITHUB_URL", ""),
 		Token:             Getenv("GITHUB_TOKEN", ""),
 		MaxRunnerIdleTime: maxRunnerIdleTime,
+		RunnerWaitTimeout: runnerWaitTimeout,
 	})
 
 	if err := s.Initialize(); err != nil {

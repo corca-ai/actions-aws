@@ -24,6 +24,7 @@ type ActionsEC2Server struct {
 	instanceId        string
 	lastDeployAt      time.Time
 	maxRunnerIdleTime time.Duration
+	runnerWaitTimeout time.Duration
 }
 
 type ActionsEC2ServerOptions struct {
@@ -34,6 +35,7 @@ type ActionsEC2ServerOptions struct {
 	Token             string
 	InstanceId        string
 	MaxRunnerIdleTime time.Duration
+	RunnerWaitTimeout time.Duration
 }
 
 func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
@@ -46,6 +48,7 @@ func NewActionsEC2Server(o ActionsEC2ServerOptions) *ActionsEC2Server {
 		instanceId:        o.InstanceId,
 		lastDeployAt:      time.Now(),
 		maxRunnerIdleTime: o.MaxRunnerIdleTime,
+		runnerWaitTimeout: o.RunnerWaitTimeout,
 	}
 }
 
@@ -142,6 +145,13 @@ func (s *ActionsEC2Server) Handle(payload github.WorkflowJobEvent) error {
 }
 
 func (s *ActionsEC2Server) Purge() error {
+	running, err := s.RunnerIsRunning()
+	if err != nil {
+		return fmt.Errorf("could not check if runner is running: %s", err)
+	}
+	if !running {
+		return nil
+	}
 	if s.lastDeployAt.Add(s.maxRunnerIdleTime).Before(time.Now()) {
 		log.Printf("[INFO] Runner has been idle for %s, stopping it\n", s.maxRunnerIdleTime)
 		return s.StopRunner()
