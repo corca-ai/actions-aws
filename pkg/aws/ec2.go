@@ -19,13 +19,15 @@ import (
 var USER_DATA = "./resource/user-data.sh"
 
 type EC2 struct {
-	client *ec2.Client
+	client     *ec2.Client
+	volumeSize int32
 }
 
 type EC2Options struct {
 	Region          string
 	AccessKeyId     string
 	SecretAccessKey string
+	VolumeSize      int32
 }
 
 func NewEC2(o EC2Options) *EC2 {
@@ -39,7 +41,8 @@ func NewEC2(o EC2Options) *EC2 {
 		panic(err)
 	}
 	return &EC2{
-		client: ec2.NewFromConfig(cfg),
+		client:     ec2.NewFromConfig(cfg),
+		volumeSize: o.VolumeSize,
 	}
 }
 
@@ -66,10 +69,19 @@ func (e *EC2) CreateInstance(userdata string) (*string, error) {
 	ri, err := e.client.RunInstances(context.Background(), &ec2.RunInstancesInput{
 		ImageId:      aws.String("ami-04cebc8d6c4f297a3"), // x86 Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
 		InstanceType: types.InstanceTypeC6iXlarge,
-		MaxCount:     aws.Int32(1),
-		MinCount:     aws.Int32(1),
-		UserData:     aws.String(base64.StdEncoding.EncodeToString([]byte(userdata))),
-		KeyName:      aws.String("github-actions-runner"),
+		BlockDeviceMappings: []types.BlockDeviceMapping{
+			{
+				DeviceName: aws.String("/dev/sda1"),
+				Ebs: &types.EbsBlockDevice{
+					DeleteOnTermination: aws.Bool(true),
+					VolumeSize:          aws.Int32(e.volumeSize),
+				},
+			},
+		},
+		MaxCount: aws.Int32(1),
+		MinCount: aws.Int32(1),
+		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(userdata))),
+		KeyName:  aws.String("github-actions-runner"),
 	})
 
 	if err != nil {

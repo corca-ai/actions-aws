@@ -44,11 +44,17 @@ func main() {
 		panic(fmt.Errorf("failed to parse PORT: %v", err))
 	}
 
+	volumeSize, err := strconv.ParseInt(Getenv("AWS_EC2_VOLUME_SIZE", "16"), 10, 32)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse AWS_EC2_VOLUME_SIZE: %v", err))
+	}
+
 	s := server.NewActionsEC2Server(server.ActionsEC2ServerOptions{
 		EC2: aws.EC2Options{
 			Region:          Getenv("AWS_REGION", "ap-northeast-2"),
 			AccessKeyId:     Getenv("AWS_ACCESS_KEY_ID", ""),
 			SecretAccessKey: Getenv("AWS_SECRET_ACCESS_KEY", ""),
+			VolumeSize:      int32(volumeSize),
 		},
 		Secret:            Getenv("GITHUB_SECRET", ""),
 		InstanceId:        Getenv("AWS_EC2_INSTANCE_ID", ""),
